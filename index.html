@@ -62,7 +62,6 @@
 
         #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: #323336; color: white; padding: 14px 24px; border-radius: 4px; transition: transform 0.3s; z-index: 3000; }
 
-        /* MANTENEMOS TU DISEÑO DE FICHA */
         #ficha-render { 
             position: absolute; 
             left: -9999px; 
@@ -72,36 +71,12 @@
             color: #202124; 
             font-family: 'Google Sans', 'Roboto', sans-serif;
         }
-        .f-header { 
-            display: flex; 
-            align-items: center; 
-            gap: 15px; 
-            border-bottom: 2px solid var(--google-blue); 
-            padding-bottom: 20px; 
-            margin-bottom: 30px; 
-        }
+        .f-header { display: flex; align-items: center; gap: 15px; border-bottom: 2px solid var(--google-blue); padding-bottom: 20px; margin-bottom: 30px; }
         .f-header h2 { margin: 0; color: #1a73e8; font-size: 26px; font-weight: 400; }
         .f-item { margin-bottom: 25px; }
-        .f-item b { 
-            display: block; 
-            font-size: 11px; 
-            color: #5f6368; 
-            text-transform: uppercase; 
-            letter-spacing: 0.8px;
-            margin-bottom: 5px;
-        }
-        .f-item span { 
-            font-size: 19px; 
-            color: #202124;
-            font-weight: 400;
-        }
-        .f-footer { 
-            margin-top: 40px; 
-            padding: 20px; 
-            background: #f8f9fa; 
-            border-radius: 12px; 
-            text-align: center;
-        }
+        .f-item b { display: block; font-size: 11px; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+        .f-item span { font-size: 19px; color: #202124; font-weight: 400; }
+        .f-footer { margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 12px; text-align: center; }
         .f-footer small { color: #5f6368; display: block; margin-bottom: 5px; }
         .f-footer h3 { margin: 0; color: var(--google-blue); font-size: 22px; font-weight: 500; }
     </style>
@@ -133,7 +108,7 @@
         <div class="section-header"><span class="material-symbols-outlined">edit_note</span> Nuevo Registro</div>
         <form id="registroForm">
             <div class="input-group"><label>Territorio</label><div class="field"><input type="text" id="territorio" placeholder="Ej: Manzana 14"></div></div>
-            <div class="input-group"><label>Nombre de la persona</label><div class="field"><input type="text" id="nombre" required></div></div>
+            <div class="input-group"><label>Nombre</label><div class="field"><input type="text" id="nombre" required></div></div>
             <div class="input-group"><label>Dirección</label><div class="field"><input type="text" id="direccion" required></div></div>
             <div class="input-group">
                 <label>WhatsApp</label>
@@ -175,15 +150,28 @@
     const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const loader = document.getElementById('loading-overlay');
 
-    // FUNCIÓN CLAVE: Formatear fecha sin desfase de zona horaria
-    function formatDateTime(isoString) {
-        // Añadimos la "Z" solo para procesar, pero forzamos el formato local manual
-        const date = new Date(isoString);
-        // Usamos una técnica para ignorar el ajuste UTC del sistema
-        return date.toLocaleString('es-ES', { 
-            weekday: 'long', day: 'numeric', month: 'long', 
-            hour: 'numeric', minute: '2-digit', hour12: true 
-        }).replace(',', '');
+    // SOLUCIÓN DEFINITIVA PARA LA HORA: Formateo manual sin objetos Date complejos
+    function getClean12h(isoStr) {
+        if(!isoStr) return "";
+        // Separamos la fecha y la hora del string ISO (YYYY-MM-DDTHH:MM)
+        const parts = isoStr.split('T');
+        const dateParts = parts[0].split('-');
+        const timeParts = parts[1].split(':');
+        
+        let hh = parseInt(timeParts[0]);
+        let mm = timeParts[1];
+        let ampm = hh >= 12 ? 'PM' : 'AM';
+        hh = hh % 12;
+        hh = hh ? hh : 12; // el 0 es 12
+        
+        const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+        const mesStr = meses[parseInt(dateParts[1]) - 1];
+        
+        return {
+            full: `${dateParts[2]} ${mesStr} • ${hh}:${mm} ${ampm}`,
+            time: `${hh}:${mm} ${ampm}`,
+            fechaLarga: `${dateParts[2]} de ${mesStr} a las ${hh}:${mm} ${ampm}`
+        };
     }
 
     async function handleAuth(t) {
@@ -222,7 +210,7 @@
             tema_hoy: document.getElementById('tema').value,
             tema_pendiente: document.getElementById('temaPendiente').value,
             notas_y_detalles: document.getElementById('detalles').value,
-            proxima_cita: document.getElementById('proxima').value, // Se guarda tal cual
+            proxima_cita: document.getElementById('proxima').value,
             user_id: user.id
         }]);
 
@@ -240,20 +228,18 @@
         loader.style.display = 'flex';
         const { data } = await _supabase.from('Registros').select('*').eq('id', id).single();
         
+        const infoHora = getClean12h(data.proxima_cita);
+
         document.getElementById('f-nombre').innerText = data.nombre;
         document.getElementById('f-territorio').innerText = data.territorio || 'General';
         document.getElementById('f-dir').innerText = data.direccion;
         document.getElementById('f-tema').innerText = data.tema_hoy || 'No registrado';
         document.getElementById('f-pendiente').innerText = data.tema_pendiente || 'Ninguno';
         document.getElementById('f-notas').innerText = data.notas_y_detalles || 'Sin notas';
-        
-        // Formateo manual 12h sin desfase
-        const d = new Date(data.proxima_cita);
-        const txt = d.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', hour12: true });
-        document.getElementById('f-cita').innerText = txt.toUpperCase();
+        document.getElementById('f-cita').innerText = infoHora.fechaLarga.toUpperCase();
         
         setTimeout(async () => {
-            const canvas = await html2canvas(document.getElementById('ficha-render'), { scale: 3 });
+            const canvas = await html2canvas(document.getElementById('ficha-render'), { scale: 3, backgroundColor: '#ffffff' });
             const link = document.createElement('a');
             link.download = `Ficha_${data.nombre}.png`;
             link.href = canvas.toDataURL();
@@ -268,18 +254,15 @@
         l.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray;font-size:12px;margin:20px">No hay registros</p>';
         
         data?.forEach(i => {
-            const d = new Date(i.proxima_cita);
-            const hora12 = d.toLocaleString('es-ES', { hour: 'numeric', minute: '2-digit', hour12: true });
-            const fecha = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-            
-            const msg = `Hola ${i.nombre}, te confirmo mi visita para el ${fecha} a las ${hora12}.`;
+            const infoHora = getClean12h(i.proxima_cita);
+            const msg = `Hola, ${i.nombre}. Te confirmo mi visita para hoy a las ${infoHora.time}. ¿Nos vemos?`;
             
             const div = document.createElement('div');
             div.className = 'agenda-item';
             div.innerHTML = `
                 <div class="info">
                     <h4>${i.nombre}</h4>
-                    <p><span class="material-symbols-outlined" style="font-size:16px">calendar_month</span> ${fecha} • ${hora12}</p>
+                    <p><span class="material-symbols-outlined" style="font-size:16px">calendar_month</span> ${infoHora.full}</p>
                     <p><span class="material-symbols-outlined" style="font-size:16px">label</span> ${i.tema_pendiente || 'Pendiente'}</p>
                 </div>
                 <div class="actions">
