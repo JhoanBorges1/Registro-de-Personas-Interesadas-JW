@@ -41,9 +41,7 @@
         .field:focus-within { border-color: var(--google-blue); box-shadow: 0 0 0 1px var(--google-blue); }
         input, select, textarea { width: 100%; border: none; background: transparent; font-size: 16px; outline: none; font-family: inherit; color: inherit; }
 
-        /* Estilo para el prefijo fijo */
-        .phone-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
-        .prefix-tag { color: var(--google-text-secondary); font-weight: 500; padding-right: 8px; border-right: 1px solid var(--google-outline); }
+        .phone-grid { display: grid; grid-template-columns: 100px 1fr; gap: 12px; }
 
         .btn-save { background: var(--google-blue); color: white; border: none; border-radius: 100px; padding: 14px 24px; font-family: 'Google Sans'; font-weight: 500; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 1px 2px rgba(60,64,67,0.3); transition: var(--transition-smooth); }
         .btn-save:hover { background: var(--google-blue-hover); box-shadow: 0 1px 3px rgba(60,64,67,0.2); }
@@ -113,12 +111,10 @@
             <div class="input-group"><label>Nombre</label><div class="field"><input type="text" id="nombre" required></div></div>
             <div class="input-group"><label>Dirección</label><div class="field"><input type="text" id="direccion" required></div></div>
             <div class="input-group">
-                <label>WhatsApp (Sin el 0 inicial)</label>
-                <div class="field">
-                    <div class="phone-grid">
-                        <span class="prefix-tag">+58</span>
-                        <input type="tel" id="telefono" placeholder="4121234567" pattern="[0-9]{10}" maxlength="10" required>
-                    </div>
+                <label>WhatsApp</label>
+                <div class="phone-grid">
+                    <div class="field"><select id="prefijo"><option value="412">0412</option><option value="424">0424</option><option value="414">0414</option><option value="422">0422</option><option value="426">0426</option><option value="416">0416</option></select></div>
+                    <div class="field"><input type="number" id="telefono" placeholder="1234567"></div>
                 </div>
             </div>
             <div class="input-group"><label>Tema analizado hoy</label><div class="field"><input type="text" id="tema"></div></div>
@@ -201,15 +197,16 @@
         loader.style.display = 'flex';
         const { data: { user } } = await _supabase.auth.getUser();
         
-        // Formateo estricto del número: +58 + 10 dígitos del input
-        const telInput = document.getElementById('telefono').value;
-        const fullPhone = "58" + telInput; // Almacenamos 58412...
+        // CORRECCIÓN: Limpieza del número para formato internacional (58 + prefijo sin 0 + numero)
+        const prefijoLimpio = document.getElementById('prefijo').value; 
+        const cuerpoTelefono = document.getElementById('telefono').value;
+        const telefonoFinal = `58${prefijoLimpio}${cuerpoTelefono}`;
 
         const { error } = await _supabase.from('Registros').insert([{
             territorio: document.getElementById('territorio').value,
             nombre: document.getElementById('nombre').value,
             direccion: document.getElementById('direccion').value,
-            telefono: fullPhone, 
+            telefono: telefonoFinal,
             tema_hoy: document.getElementById('tema').value,
             tema_pendiente: document.getElementById('temaPendiente').value,
             notas_y_detalles: document.getElementById('detalles').value,
@@ -256,8 +253,8 @@
             const infoHora = getClean12h(i.proxima_cita);
             const msg = `Hola, ${i.nombre}. Te escribo para confirmarte que pasaré a visitarte hoy a las ${infoHora.time}. ¿Estarás disponible?`;
             
-            // Aseguramos que el link use el formato wa.me/584XXXXXXXXX
-            const waUrl = `https://wa.me/${i.telefono}?text=${encodeURIComponent(msg)}`;
+            // CORRECCIÓN: Eliminamos cualquier carácter no numérico antes de crear el enlace
+            const telLimpio = i.telefono.toString().replace(/\D/g, '');
             
             const div = document.createElement('div');
             div.className = 'agenda-item';
@@ -268,7 +265,7 @@
                     <p><span class="material-symbols-outlined" style="font-size:16px">label</span> ${i.tema_pendiente || 'Pendiente'}</p>
                 </div>
                 <div class="actions">
-                    <button class="btn-icon wa" onclick="window.open('${waUrl}')"><span class="material-symbols-outlined">chat</span></button>
+                    <button class="btn-icon wa" onclick="window.open('https://wa.me/${telLimpio}?text=${encodeURIComponent(msg)}')"><span class="material-symbols-outlined">chat</span></button>
                     <button class="btn-icon" onclick="descargar(${i.id})"><span class="material-symbols-outlined">file_download</span></button>
                     <button class="btn-icon delete" onclick="eliminar(${i.id})"><span class="material-symbols-outlined">delete</span></button>
                 </div>`;
