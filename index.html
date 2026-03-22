@@ -24,6 +24,7 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Roboto', sans-serif; background-color: var(--google-gray-bg); margin: 0; display: flex; justify-content: center; min-height: 100vh; color: var(--google-text-primary); }
 
+        /* Pantallas */
         #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 400px; padding: 20px; text-align: center; }
         #app-screen { display: none; width: 100%; max-width: 480px; padding: 16px; flex-direction: column; gap: 16px; }
 
@@ -125,9 +126,12 @@
 </div>
 
 <script>
+    // --- CONFIGURACIÓN CRÍTICA ---
     const SUPABASE_URL = 'https://cgwyjtykhgrphdnbtcpe.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_Xyd7Os7EhFGC_go-C-jPlA_Jqoj0pfD';
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // CORRECCIÓN: Usar window.supabase para evitar el error de 'not defined'
+    const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const loader = document.getElementById('loading-overlay');
 
     async function handleAuth(type) {
@@ -135,9 +139,11 @@
         const password = document.getElementById('auth-password').value;
         if(!email || !password) return alert("Rellena los datos");
         loader.style.display = 'flex';
+        
         const { error } = type === 'login' 
             ? await _supabase.auth.signInWithPassword({ email, password })
             : await _supabase.auth.signUp({ email, password });
+            
         loader.style.display = 'none';
         if(error) alert(error.message); else checkUser();
     }
@@ -161,6 +167,7 @@
         loader.style.display = 'flex';
         const { data: { user } } = await _supabase.auth.getUser();
         
+        // CORRECCIÓN: Sincronizado con tus nombres exactos de tabla
         const { error } = await _supabase.from('registros').insert([{
             nombre: document.getElementById('nombre').value,
             direccion: document.getElementById('direccion').value,
@@ -172,16 +179,20 @@
         }]);
 
         loader.style.display = 'none';
-        if(error) alert("Error: " + error.message); else { e.target.reset(); render(); }
+        if(error) alert("Error de base de datos: " + error.message); else { e.target.reset(); render(); }
     });
 
     async function render() {
         const { data } = await _supabase.from('registros').select('*').order('proxima_cita', { ascending: true });
         const lista = document.getElementById('listaAgenda');
-        lista.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray;font-size:12px;">No hay registros</p>';
+        lista.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray;font-size:12px;">No hay registros sincronizados</p>';
+        
         data?.forEach(item => {
             const fecha = new Date(item.proxima_cita).toLocaleString('es-ES', { day:'2-digit', month:'short', hour:'numeric', minute:'2-digit', hour12:true });
-            const msg = `hola ${item.nombre}\nespero estés bien\nte escribo para confirmar que pasaré hoy a las ${new Date(item.proxima_cita).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}\n¿nos vemos?`;
+            const horaCita = new Date(item.proxima_cita).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            // ESTILO CASCADA: Sin puntos finales, frases cortas
+            const msg = `hola ${item.nombre}\nespero estés bien\nte escribo para confirmar que pasaré hoy a las ${horaCita}\n¿nos vemos?`;
             
             const div = document.createElement('div');
             div.className = 'agenda-item';
@@ -197,7 +208,10 @@
             lista.appendChild(div);
         });
     }
+    
+    // Iniciar app verificando si hay sesión activa
     checkUser();
 </script>
 </body>
 </html>
+ 
