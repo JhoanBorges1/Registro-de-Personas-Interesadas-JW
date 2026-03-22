@@ -62,7 +62,6 @@
 
         #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: #323336; color: white; padding: 14px 24px; border-radius: 4px; transition: transform 0.3s; z-index: 3000; }
 
-        /* Estilo para la Ficha de Exportación */
         #ficha-render { position: absolute; left: -9999px; width: 500px; background: white; padding: 40px; color: #202124; }
         .f-header { border-bottom: 2px solid var(--google-blue); padding-bottom: 10px; margin-bottom: 20px; }
         .f-item { margin-bottom: 15px; }
@@ -108,9 +107,9 @@
             </div>
             <div class="input-group"><label>Tema analizado hoy</label><div class="field"><input type="text" id="tema"></div></div>
             <div class="input-group"><label>Tema pendiente (Próxima visita)</label><div class="field"><input type="text" id="temaPendiente"></div></div>
-            <div class="input-group"><label>Notas y detalles</label><div class="field"><textarea id="detalles" rows="2"></textarea></div></div>
+            <div class="input-group"><label>Notas adicionales</label><div class="field"><textarea id="detalles" rows="2"></textarea></div></div>
             <div class="input-group"><label>Programar Revisita</label><div class="field"><input type="datetime-local" id="proxima" required></div></div>
-            <button type="submit" class="btn-save"><span class="material-symbols-outlined">save</span> Guardar en Registros</button>
+            <button type="submit" class="btn-save"><span class="material-symbols-outlined">save</span> Guardar en la Nube</button>
         </form>
     </div>
 
@@ -185,12 +184,19 @@
         if(error) alert(error.message); else { e.target.reset(); render(); showToast("Guardado en la nube"); }
     });
 
+    // FUNCIÓN ELIMINAR CORREGIDA
     async function eliminar(id) {
-        if(!confirm("¿Borrar registro?")) return;
+        if(!confirm("¿Estás seguro de que quieres eliminar este registro de la nube?")) return;
         loader.style.display = 'flex';
-        await _supabase.from('Registros').delete().eq('id', id);
+        const { error } = await _supabase.from('Registros').delete().eq('id', id);
         loader.style.display = 'none';
-        render(); showToast("Eliminado");
+        
+        if(error) {
+            alert("Error al eliminar: " + error.message);
+        } else {
+            showToast("Registro eliminado correctamente");
+            render(); // Esto vuelve a cargar la lista para que el borrado se vea al instante
+        }
     }
 
     async function descargar(id) {
@@ -221,7 +227,6 @@
             const d = new Date(i.proxima_cita);
             const hora = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
             const fecha = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-            
             const msg = `Hola, ${i.nombre}. Espero que estés bien. Te escribo para confirmarte que pasaré a visitarte hoy a las ${hora}. ¿Estarás disponible? Saludos.`;
             
             const div = document.createElement('div');
