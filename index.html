@@ -3,96 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Registro Ministerial Cloud | Jhoan UX</title>
+    <title>Registro Ministerial Cloud | Google UX</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
     <style>
-        :root { --google-blue: #1a73e8; --google-gray-bg: #f8f9fa; --google-surface: #ffffff; --google-outline: #dadce0; --google-text-primary: #202124; --google-text-secondary: #5f6368; }
+        :root {
+            --google-blue: #1a73e8;
+            --google-blue-hover: #1765cc;
+            --google-gray-bg: #f8f9fa;
+            --google-surface: #ffffff;
+            --google-outline: #dadce0;
+            --google-text-primary: #202124;
+            --google-text-secondary: #5f6368;
+            --google-error: #d93025;
+            --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Roboto', sans-serif; background-color: var(--google-gray-bg); margin: 0; display: flex; justify-content: center; min-height: 100vh; color: var(--google-text-primary); }
-        #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 400px; padding: 20px; }
+
+        #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 400px; padding: 20px; text-align: center; }
         #app-screen { display: none; width: 100%; max-width: 480px; padding: 16px; flex-direction: column; gap: 16px; }
-        .card { background: var(--google-surface); border-radius: 24px; padding: 24px; border: 1px solid var(--google-outline); width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+        .card { background: var(--google-surface); border-radius: 24px; padding: 24px; border: 1px solid var(--google-outline); transition: var(--transition-smooth); width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .section-header { font-family: 'Google Sans'; font-size: 14px; font-weight: 500; color: var(--google-blue); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
         .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; font-size: 12px; font-weight: 500; color: var(--google-text-secondary); margin-bottom: 6px; }
-        .field { border: 1px solid var(--google-outline); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; background: white; }
-        input, select { width: 100%; border: none; background: transparent; font-size: 16px; outline: none; font-family: inherit; }
-        .btn-primary { background: var(--google-blue); color: white; border: none; border-radius: 100px; padding: 14px 24px; font-weight: 500; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-outline { background: transparent; color: var(--google-blue); border: 1px solid var(--google-outline); border-radius: 100px; padding: 12px 24px; width: 100%; cursor: pointer; margin-top: 10px; }
-        .agenda-item { padding: 16px; margin-bottom: 12px; border: 1px solid var(--google-outline); border-radius: 16px; display: flex; justify-content: space-between; align-items: center; background: white; }
-        #loading-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 2000; justify-content: center; align-items: center; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--google-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+        .input-group label { display: block; font-size: 12px; font-weight: 500; color: var(--google-text-secondary); margin-bottom: 6px; margin-left: 4px; }
+        .field { border: 1px solid var(--google-outline); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; background: var(--google-surface); }
+        .field:focus-within { border-color: var(--google-blue); box-shadow: 0 0 0 1px var(--google-blue); }
+        input, select, textarea { width: 100%; border: none; background: transparent; font-size: 16px; outline: none; font-family: inherit; color: inherit; }
+
+        .phone-grid { display: grid; grid-template-columns: 100px 1fr; gap: 12px; }
+
+        .btn-primary { background: var(--google-blue); color: white; border: none; border-radius: 100px; padding: 14px 24px; font-family: 'Google Sans'; font-weight: 500; width: 100%; cursor: pointer; margin-top: 8px; transition: var(--transition-smooth); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary:hover { background: var(--google-blue-hover); box-shadow: 0 1px 3px rgba(60,64,67,0.3); }
+        .btn-outline { background: transparent; color: var(--google-blue); border: 1px solid var(--google-outline); border-radius: 100px; padding: 12px 24px; font-family: 'Google Sans'; font-weight: 500; width: 100%; cursor: pointer; margin-top: 12px; }
+
+        .agenda-item { padding: 20px; margin-bottom: 16px; border: 1px solid var(--google-outline); border-radius: 20px; background: white; position: relative; }
+        .info h4 { margin: 0 0 8px 0; font-family: 'Google Sans'; font-size: 17px; font-weight: 500; color: var(--google-blue); }
+        .info p { margin: 4px 0; font-size: 13px; color: var(--google-text-secondary); display: flex; align-items: center; gap: 6px; }
+        
+        .actions { display: flex; gap: 8px; margin-top: 16px; border-top: 1px solid var(--google-gray-bg); pt: 12px; padding-top: 12px; justify-content: flex-end; }
+        .btn-icon { background: var(--google-gray-bg); color: var(--google-text-secondary); border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition-smooth); }
+        .btn-icon:hover { background: var(--google-outline); color: var(--google-text-primary); }
+        .btn-whatsapp { color: #25D366; }
+        .btn-delete { color: var(--google-error); }
+
+        #loading-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); z-index: 2000; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner { width: 48px; height: 48px; border: 4px solid #f3f3f3; border-top: 4px solid var(--google-blue); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-<div id="loading-overlay"><div class="spinner"></div></div>
+
+<div id="loading-overlay">
+    <div class="spinner"></div>
+    <p style="font-family: 'Google Sans'; color: var(--google-blue); margin-top: 20px;">Sincronizando con la nube...</p>
+</div>
+
 <div id="auth-screen">
-    <span class="material-symbols-outlined" style="font-size: 56px; color: var(--google-blue); margin-bottom: 20px;">cloud_sync</span>
+    <span class="material-symbols-outlined" style="font-size: 64px; color: var(--google-blue); margin-bottom: 10px;">cloud_done</span>
+    <h1 style="font-family: 'Google Sans'; font-weight: 400; margin-bottom: 30px;">Registro Ministerial</h1>
     <div class="card">
-        <div class="input-group"><label>Correo</label><div class="field"><input type="email" id="auth-email"></div></div>
-        <div class="input-group"><label>Contraseña</label><div class="field"><input type="password" id="auth-password"></div></div>
-        <button class="btn-primary" onclick="handleAuth('login')">Entrar</button>
-        <button class="btn-outline" onclick="handleAuth('signup')">Registrarme</button>
+        <div class="input-group">
+            <label>Correo electrónico</label>
+            <div class="field"><input type="email" id="auth-email" placeholder="nombre@ejemplo.com"></div>
+        </div>
+        <div class="input-group">
+            <label>Contraseña</label>
+            <div class="field"><input type="password" id="auth-password" placeholder="••••••••"></div>
+        </div>
+        <button class="btn-primary" onclick="handleAuth('login')"><span class="material-symbols-outlined">login</span> Entrar</button>
+        <button class="btn-outline" onclick="handleAuth('signup')">Crear cuenta nueva</button>
     </div>
 </div>
+
 <div id="app-screen">
-    <header style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
-        <h2 style="font-family: 'Google Sans'; margin:0">Mis Visitas</h2>
-        <button onclick="handleLogout()" class="btn-outline" style="width:auto; padding:5px 15px; margin:0; font-size:12px">SALIR</button>
+    <header style="padding: 10px 8px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="material-symbols-outlined" style="color: var(--google-blue); font-size: 32px;">book_2</span>
+            <h1 style="font-family: 'Google Sans'; font-size: 20px; font-weight: 400; margin: 0;">Mis Visitas</h1>
+        </div>
+        <button onclick="handleLogout()" class="btn-outline" style="width: auto; padding: 6px 16px; margin: 0; font-size: 11px;">SALIR</button>
     </header>
+
     <div class="card">
+        <div class="section-header"><span class="material-symbols-outlined">person_add</span> Nueva Visita</div>
         <form id="registroForm">
-            <div class="input-group"><label>Nombre</label><div class="field"><input type="text" id="nombre" required></div></div>
-            <div class="input-group"><label>Dirección</label><div class="field"><input type="text" id="direccion" required></div></div>
-            <div class="input-group"><label>Teléfono</label><div class="field"><input type="number" id="telefono" required></div></div>
-            <div class="input-group"><label>Próxima cita</label><div class="field"><input type="datetime-local" id="proxima_cita" required></div></div>
-            <button type="submit" class="btn-primary">Guardar en la Nube</button>
+            <div class="input-group">
+                <label>Nombre de la persona</label>
+                <div class="field"><input type="text" id="nombre" required placeholder="Nombre completo"></div>
+            </div>
+            <div class="input-group">
+                <label>Dirección</label>
+                <div class="field"><input type="text" id="direccion" required placeholder="Calle, casa, referencia"></div>
+            </div>
+            <div class="input-group">
+                <label>WhatsApp</label>
+                <div class="phone-grid">
+                    <div class="field"><select id="prefijo"><option>0412</option><option>0424</option><option>0414</option><option>0426</option><option>0416</option></select></div>
+                    <div class="field"><input type="number" id="telefono" placeholder="1234567"></div>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Tema para la siguiente visita</label>
+                <div class="field"><input type="text" id="tema_hoy" placeholder="Pregunta pendiente"></div>
+            </div>
+            <div class="input-group">
+                <label>Detalles adicionales</label>
+                <div class="field"><input type="text" id="detalles" placeholder="Notas sobre la persona"></div>
+            </div>
+            <div class="input-group">
+                <label>Programar Fecha y Hora</label>
+                <div class="field"><input type="datetime-local" id="proxima_cita" required></div>
+            </div>
+            <button type="submit" class="btn-primary"><span class="material-symbols-outlined">cloud_upload</span> Guardar en Registros</button>
         </form>
     </div>
-    <div id="listaAgenda"></div>
+
+    <div class="card">
+        <div class="section-header"><span class="material-symbols-outlined">history</span> Mi Agenda</div>
+        <div id="listaAgenda"></div>
+    </div>
 </div>
+
 <script>
     const SUPABASE_URL = 'https://cgwyjtykhgrphdnbtcpe.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_Xyd7Os7EhFGC_go-C-jPlA_Jqoj0pfD';
     const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    async function handleAuth(t){
-        const e=document.getElementById('auth-email').value,p=document.getElementById('auth-password').value;
-        document.getElementById('loading-overlay').style.display='flex';
-        const {error:err} = t==='login' ? await _supabase.auth.signInWithPassword({email:e,password:p}) : await _supabase.auth.signUp({email:e,password:p});
-        document.getElementById('loading-overlay').style.display='none';
-        if(err) alert(err.message); else checkUser();
+    const loader = document.getElementById('loading-overlay');
+
+    async function handleAuth(type) {
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        if(!email || !password) return alert("Rellena los datos");
+        loader.style.display = 'flex';
+        const { error } = type === 'login' 
+            ? await _supabase.auth.signInWithPassword({ email, password })
+            : await _supabase.auth.signUp({ email, password });
+        loader.style.display = 'none';
+        if(error) alert(error.message); else checkUser();
     }
-    async function handleLogout(){ await _supabase.auth.signOut(); checkUser(); }
-    async function checkUser(){
-        const {data:{user}} = await _supabase.auth.getUser();
-        if(user){ document.getElementById('auth-screen').style.display='none'; document.getElementById('app-screen').style.display='flex'; render(); }
-        else { document.getElementById('auth-screen').style.display='flex'; document.getElementById('app-screen').style.display='none'; }
+
+    async function handleLogout() { await _supabase.auth.signOut(); checkUser(); }
+
+    async function checkUser() {
+        const { data: { user } } = await _supabase.auth.getUser();
+        if(user) {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+            render();
+        } else {
+            document.getElementById('auth-screen').style.display = 'flex';
+            document.getElementById('app-screen').style.display = 'none';
+        }
     }
-    document.getElementById('registroForm').addEventListener('submit', async (e)=>{
+
+    document.getElementById('registroForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const {data:{user}} = await _supabase.auth.getUser();
-        const {error} = await _supabase.from('Registros').insert([{
+        loader.style.display = 'flex';
+        const { data: { user } } = await _supabase.auth.getUser();
+        
+        const { error } = await _supabase.from('Registros').insert([{
             nombre: document.getElementById('nombre').value,
             direccion: document.getElementById('direccion').value,
-            telefono: document.getElementById('telefono').value,
+            telefono: document.getElementById('prefijo').value + document.getElementById('telefono').value,
+            tema_hoy: document.getElementById('tema_hoy').value,
             proxima_cita: document.getElementById('proxima_cita').value,
             user_id: user.id
         }]);
-        if(error) alert("Error: "+error.message); else { e.target.reset(); render(); }
+
+        loader.style.display = 'none';
+        if(error) alert("Error de base de datos: " + error.message); else { e.target.reset(); render(); }
     });
-    async function render(){
-        const {data} = await _supabase.from('Registros').select('*').order('proxima_cita',{ascending:true});
-        const l = document.getElementById('listaAgenda');
-        l.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray">Sin registros</p>';
-        data?.forEach(i => {
-            const h = new Date(i.proxima_cita).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-            const d = document.createElement('div');
-            d.className = 'agenda-item';
-            d.innerHTML = `<div class="info"><h4>${i.nombre}</h4><p>${i.direccion}</p></div>
-            <button class="btn-primary" style="width:auto;padding:10px" onclick="window.open('https://wa.me/${i.telefono}/?text=${encodeURIComponent('hola '+i.nombre+'\\nconfirmando visita a las '+h+'\\n¿nos vemos?')}')">WA</button>`;
-            l.appendChild(d);
+
+    async function eliminarRegistro(id) {
+        if(!confirm("¿Estás seguro de que quieres eliminar este registro de la nube?")) return;
+        loader.style.display = 'flex';
+        const { error } = await _supabase.from('Registros').delete().eq('id', id);
+        loader.style.display = 'none';
+        if(error) alert("Error al eliminar: " + error.message); else render();
+    }
+
+    async function descargarImagen(id) {
+        const element = document.getElementById(`card-${id}`);
+        const canvas = await html2canvas(element, { backgroundColor: '#f8f9fa', scale: 2 });
+        const link = document.createElement('a');
+        link.download = `Registro_Visita_${id}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+
+    async function render() {
+        const { data } = await _supabase.from('Registros').select('*').order('proxima_cita', { ascending: true });
+        const lista = document.getElementById('listaAgenda');
+        lista.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray;font-size:12px;padding:20px;">No hay visitas programadas en la nube.</p>';
+        
+        data?.forEach(item => {
+            const dt = new Date(item.proxima_cita);
+            const fechaLabel = dt.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+            const horaLabel = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            
+            const msg = `Hola, ${item.nombre}. Espero que estés teniendo un buen día. Te escribo para confirmarte que pasaré a visitarte el día de hoy a las ${horaLabel}. ¿Te parece bien que nos veamos a esa hora? ¡Saludos!`;
+            
+            const div = document.createElement('div');
+            div.className = 'agenda-item';
+            div.id = `card-${item.id}`;
+            div.innerHTML = `
+                <div class="info">
+                    <h4>${item.nombre}</h4>
+                    <p><span class="material-symbols-outlined" style="font-size:16px">location_on</span> ${item.direccion}</p>
+                    <p><span class="material-symbols-outlined" style="font-size:16px">event</span> ${fechaLabel}</p>
+                    <p><span class="material-symbols-outlined" style="font-size:16px">schedule</span> ${horaLabel}</p>
+                    ${item.tema_hoy ? `<p><span class="material-symbols-outlined" style="font-size:16px">pending_actions</span> <b>Pendiente:</b> ${item.tema_hoy}</p>` : ''}
+                </div>
+                <div class="actions">
+                    <button class="btn-icon btn-whatsapp" title="WhatsApp" onclick="window.open('https://wa.me/${item.telefono.replace('+','')}/?text=${encodeURIComponent(msg)}')">
+                        <span class="material-symbols-outlined">chat</span>
+                    </button>
+                    <button class="btn-icon" title="Descargar Registro" onclick="descargarImagen(${item.id})">
+                        <span class="material-symbols-outlined">download</span>
+                    </button>
+                    <button class="btn-icon btn-delete" title="Eliminar" onclick="eliminarRegistro(${item.id})">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
+                </div>`;
+            lista.appendChild(div);
         });
     }
     checkUser();
