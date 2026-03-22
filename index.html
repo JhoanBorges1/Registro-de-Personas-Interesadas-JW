@@ -62,16 +62,53 @@
 
         #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: #323336; color: white; padding: 14px 24px; border-radius: 4px; transition: transform 0.3s; z-index: 3000; }
 
-        #ficha-render { position: absolute; left: -9999px; width: 500px; background: white; padding: 40px; color: #202124; }
-        .f-header { border-bottom: 2px solid var(--google-blue); padding-bottom: 10px; margin-bottom: 20px; }
-        .f-item { margin-bottom: 15px; }
-        .f-item b { display: block; font-size: 12px; color: var(--google-blue); text-transform: uppercase; }
-        .f-item span { font-size: 18px; }
+        /* --- ESTILO FICHA GOOGLE/GEMINI PARA DESCARGA --- */
+        #ficha-render { 
+            position: absolute; 
+            left: -9999px; 
+            width: 500px; 
+            background: white; 
+            padding: 50px; 
+            color: #202124; 
+            font-family: 'Google Sans', 'Roboto', sans-serif;
+        }
+        .f-header { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            border-bottom: 2px solid var(--google-blue); 
+            padding-bottom: 20px; 
+            margin-bottom: 30px; 
+        }
+        .f-header h2 { margin: 0; color: #1a73e8; font-size: 26px; font-weight: 400; }
+        .f-item { margin-bottom: 25px; }
+        .f-item b { 
+            display: block; 
+            font-size: 11px; 
+            color: #5f6368; 
+            text-transform: uppercase; 
+            letter-spacing: 0.8px;
+            margin-bottom: 5px;
+        }
+        .f-item span { 
+            font-size: 19px; 
+            color: #202124;
+            font-weight: 400;
+        }
+        .f-footer { 
+            margin-top: 40px; 
+            padding: 20px; 
+            background: #f8f9fa; 
+            border-radius: 12px; 
+            text-align: center;
+        }
+        .f-footer small { color: #5f6368; display: block; margin-bottom: 5px; }
+        .f-footer h3 { margin: 0; color: var(--google-blue); font-size: 22px; font-weight: 500; }
     </style>
 </head>
 <body>
 
-<div id="loading-overlay"><div class="spinner"></div><p style="font-family:'Google Sans'; margin-top:20px; color:var(--google-blue)">Sincronizando...</p></div>
+<div id="loading-overlay"><div class="spinner"></div><p style="font-family:'Google Sans'; margin-top:20px; color:var(--google-blue)">Generando documento...</p></div>
 <div id="toast"><span id="toast-text"></span></div>
 
 <div id="auth-screen" style="display: flex; flex-direction: column; width: 100%; align-items: center; justify-content: center; padding: 20px;">
@@ -95,8 +132,8 @@
     <div class="card">
         <div class="section-header"><span class="material-symbols-outlined">edit_note</span> Nuevo Registro</div>
         <form id="registroForm">
-            <div class="input-group"><label>Territorio</label><div class="field"><input type="text" id="territorio" placeholder="Pje: Manzana 14"></div></div>
-            <div class="input-group"><label>Nombre</label><div class="field"><input type="text" id="nombre" required></div></div>
+            <div class="input-group"><label>Territorio</label><div class="field"><input type="text" id="territorio" placeholder="Ej: Manzana 14"></div></div>
+            <div class="input-group"><label>Nombre de la persona</label><div class="field"><input type="text" id="nombre" required></div></div>
             <div class="input-group"><label>Dirección</label><div class="field"><input type="text" id="direccion" required></div></div>
             <div class="input-group">
                 <label>WhatsApp</label>
@@ -120,12 +157,23 @@
 </div>
 
 <div id="ficha-render">
-    <div class="f-header"><h2 style="margin:0">Ficha de Visita</h2></div>
-    <div class="f-item"><b>Persona</b><span id="f-nombre"></span></div>
+    <div class="f-header">
+        <span class="material-symbols-outlined" style="color:#1a73e8; font-size:40px;">description</span>
+        <h2>Ficha de Visita</h2>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+        <div class="f-item"><b>Persona</b><span id="f-nombre"></span></div>
+        <div class="f-item"><b>Territorio</b><span id="f-territorio"></span></div>
+    </div>
     <div class="f-item"><b>Dirección</b><span id="f-dir"></span></div>
-    <div class="f-item"><b>Tema Tratado</b><span id="f-tema"></span></div>
-    <div class="f-item"><b>Próxima Cita</b><span id="f-cita"></span></div>
-    <div class="f-item"><b>Notas</b><span id="f-notas"></span></div>
+    <div class="f-item"><b>Tema Tratado Hoy</b><span id="f-tema"></span></div>
+    <div class="f-item"><b>Tema Pendiente</b><span id="f-pendiente"></span></div>
+    <div class="f-item"><b>Notas Adicionales</b><span id="f-notas"></span></div>
+    
+    <div class="f-footer">
+        <small>CITA PROGRAMADA PARA</small>
+        <h3 id="f-cita"></h3>
+    </div>
 </div>
 
 <script>
@@ -168,7 +216,6 @@
         loader.style.display = 'flex';
         const { data: { user } } = await _supabase.auth.getUser();
         
-        // AQUÍ ESTÁ EL CAMBIO MAESTRO: 'notas_y_detalles'
         const { error } = await _supabase.from('Registros').insert([{
             territorio: document.getElementById('territorio').value,
             nombre: document.getElementById('nombre').value,
@@ -182,30 +229,44 @@
         }]);
 
         loader.style.display = 'none';
-        if(error) alert("Fallo al guardar: " + error.message); else { e.target.reset(); render(); showToast("¡Sincronizado con éxito!"); }
+        if(error) alert("Error: " + error.message); else { e.target.reset(); render(); showToast("Sincronizado con éxito"); }
     });
 
     async function eliminar(id) {
         if(!confirm("¿Deseas eliminar este registro de la nube?")) return;
         loader.style.display = 'flex';
-        const { error } = await _supabase.from('Registros').delete().eq('id', id);
+        await _supabase.from('Registros').delete().eq('id', id);
         loader.style.display = 'none';
-        if(error) alert("Error: " + error.message); else { showToast("Eliminado correctamente"); render(); }
+        showToast("Eliminado");
+        render();
     }
 
     async function descargar(id) {
         loader.style.display = 'flex';
         const { data } = await _supabase.from('Registros').select('*').eq('id', id).single();
+        
+        // FORMATO DE HORA 12H PARA LA FICHA
+        const citaFecha = new Date(data.proxima_cita).toLocaleString('es-ES', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true 
+        });
+
         document.getElementById('f-nombre').innerText = data.nombre;
+        document.getElementById('f-territorio').innerText = data.territorio || 'General';
         document.getElementById('f-dir').innerText = data.direccion;
-        document.getElementById('f-tema').innerText = data.tema_hoy || 'Sin tema';
-        document.getElementById('f-cita').innerText = new Date(data.proxima_cita).toLocaleString();
+        document.getElementById('f-tema').innerText = data.tema_hoy || 'No registrado';
+        document.getElementById('f-pendiente').innerText = data.tema_pendiente || 'Ninguno';
         document.getElementById('f-notas').innerText = data.notas_y_detalles || 'Sin notas';
+        document.getElementById('f-cita').innerText = citaFecha.charAt(0).toUpperCase() + citaFecha.slice(1);
         
         setTimeout(async () => {
-            const canvas = await html2canvas(document.getElementById('ficha-render'), { scale: 2 });
+            const canvas = await html2canvas(document.getElementById('ficha-render'), { scale: 3, backgroundColor: '#ffffff' });
             const link = document.createElement('a');
-            link.download = `Visita_${data.nombre}.png`;
+            link.download = `Registro_${data.nombre}.png`;
             link.href = canvas.toDataURL();
             link.click();
             loader.style.display = 'none';
@@ -215,20 +276,22 @@
     async function render() {
         const { data } = await _supabase.from('Registros').select('*').order('proxima_cita', { ascending: true });
         const l = document.getElementById('listaAgenda');
-        l.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray;font-size:12px;margin:20px">No hay registros</p>';
+        l.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray;font-size:12px;margin:20px">No hay registros guardados</p>';
         
         data?.forEach(i => {
             const d = new Date(i.proxima_cita);
-            const hora = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            // HORA 12H PARA EL BOTÓN DE WHATSAPP
+            const hora12 = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
             const fecha = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
-            const msg = `Hola, ${i.nombre}. Espero que estés bien. Te escribo para confirmarte que pasaré a visitarte hoy a las ${hora}. ¿Estarás disponible? Saludos.`;
+            
+            const msg = `Hola, ${i.nombre}. Espero que estés bien. Te escribo para confirmarte que pasaré a visitarte hoy a las ${hora12}. ¿Estarás disponible? Saludos.`;
             
             const div = document.createElement('div');
             div.className = 'agenda-item';
             div.innerHTML = `
                 <div class="info">
                     <h4>${i.nombre}</h4>
-                    <p><span class="material-symbols-outlined" style="font-size:16px">calendar_month</span> ${fecha} • ${hora}</p>
+                    <p><span class="material-symbols-outlined" style="font-size:16px">calendar_month</span> ${fecha} • ${hora12}</p>
                     <p><span class="material-symbols-outlined" style="font-size:16px">label</span> ${i.tema_pendiente || 'Sin tema pendiente'}</p>
                 </div>
                 <div class="actions">
