@@ -62,7 +62,6 @@
 
         #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: #323336; color: white; padding: 14px 24px; border-radius: 4px; transition: transform 0.3s; z-index: 3000; }
 
-        /* --- ESTILO FICHA GOOGLE/GEMINI PARA DESCARGA --- */
         #ficha-render { 
             position: absolute; 
             left: -9999px; 
@@ -108,7 +107,7 @@
 </head>
 <body>
 
-<div id="loading-overlay"><div class="spinner"></div><p style="font-family:'Google Sans'; margin-top:20px; color:var(--google-blue)">Generando documento...</p></div>
+<div id="loading-overlay"><div class="spinner"></div><p style="font-family:'Google Sans'; margin-top:20px; color:var(--google-blue)">Procesando...</p></div>
 <div id="toast"><span id="toast-text"></span></div>
 
 <div id="auth-screen" style="display: flex; flex-direction: column; width: 100%; align-items: center; justify-content: center; padding: 20px;">
@@ -233,11 +232,10 @@
     });
 
     async function eliminar(id) {
-        if(!confirm("¿Deseas eliminar este registro de la nube?")) return;
+        if(!confirm("¿Eliminar registro?")) return;
         loader.style.display = 'flex';
         await _supabase.from('Registros').delete().eq('id', id);
         loader.style.display = 'none';
-        showToast("Eliminado");
         render();
     }
 
@@ -245,13 +243,14 @@
         loader.style.display = 'flex';
         const { data } = await _supabase.from('Registros').select('*').eq('id', id).single();
         
-        // FORMATO DE HORA 12H PARA LA FICHA
-        const citaFecha = new Date(data.proxima_cita).toLocaleString('es-ES', { 
+        // CORRECCIÓN DE HORA PARA LA FICHA (FORZAR 12 HORAS)
+        const d = new Date(data.proxima_cita);
+        const citaFormateada = d.toLocaleString('es-ES', { 
             weekday: 'long', 
             day: 'numeric', 
-            month: 'long',
-            hour: 'numeric',
-            minute: '2-digit',
+            month: 'long', 
+            hour: 'numeric', 
+            minute: '2-digit', 
             hour12: true 
         });
 
@@ -261,12 +260,12 @@
         document.getElementById('f-tema').innerText = data.tema_hoy || 'No registrado';
         document.getElementById('f-pendiente').innerText = data.tema_pendiente || 'Ninguno';
         document.getElementById('f-notas').innerText = data.notas_y_detalles || 'Sin notas';
-        document.getElementById('f-cita').innerText = citaFecha.charAt(0).toUpperCase() + citaFecha.slice(1);
+        document.getElementById('f-cita').innerText = citaFormateada.toUpperCase();
         
         setTimeout(async () => {
             const canvas = await html2canvas(document.getElementById('ficha-render'), { scale: 3, backgroundColor: '#ffffff' });
             const link = document.createElement('a');
-            link.download = `Registro_${data.nombre}.png`;
+            link.download = `Ficha_${data.nombre}.png`;
             link.href = canvas.toDataURL();
             link.click();
             loader.style.display = 'none';
@@ -276,15 +275,15 @@
     async function render() {
         const { data } = await _supabase.from('Registros').select('*').order('proxima_cita', { ascending: true });
         const l = document.getElementById('listaAgenda');
-        l.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray;font-size:12px;margin:20px">No hay registros guardados</p>';
+        l.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray;font-size:12px;margin:20px">No hay registros</p>';
         
         data?.forEach(i => {
             const d = new Date(i.proxima_cita);
-            // HORA 12H PARA EL BOTÓN DE WHATSAPP
-            const hora12 = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+            // CORRECCIÓN DE HORA PARA LA LISTA (FORZAR 12 HORAS)
+            const hora12 = d.toLocaleString('es-ES', { hour: 'numeric', minute: '2-digit', hour12: true });
             const fecha = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
             
-            const msg = `Hola, ${i.nombre}. Espero que estés bien. Te escribo para confirmarte que pasaré a visitarte hoy a las ${hora12}. ¿Estarás disponible? Saludos.`;
+            const msg = `Hola, ${i.nombre}. Te escribo para confirmarte que pasaré a visitarte el día ${fecha} a las ${hora12}. ¿Estarás disponible?`;
             
             const div = document.createElement('div');
             div.className = 'agenda-item';
@@ -292,7 +291,7 @@
                 <div class="info">
                     <h4>${i.nombre}</h4>
                     <p><span class="material-symbols-outlined" style="font-size:16px">calendar_month</span> ${fecha} • ${hora12}</p>
-                    <p><span class="material-symbols-outlined" style="font-size:16px">label</span> ${i.tema_pendiente || 'Sin tema pendiente'}</p>
+                    <p><span class="material-symbols-outlined" style="font-size:16px">label</span> ${i.tema_pendiente || 'Pendiente'}</p>
                 </div>
                 <div class="actions">
                     <button class="btn-icon wa" onclick="window.open('https://wa.me/${i.telefono}/?text=${encodeURIComponent(msg)}')"><span class="material-symbols-outlined">chat</span></button>
