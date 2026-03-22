@@ -60,8 +60,6 @@
         .spinner { width: 48px; height: 48px; border: 4px solid #f3f3f3; border-top: 4px solid var(--google-blue); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: #323336; color: white; padding: 14px 24px; border-radius: 4px; transition: transform 0.3s; z-index: 3000; }
-
         #ficha-render { 
             position: absolute; 
             left: -9999px; 
@@ -69,27 +67,17 @@
             background: white; 
             padding: 50px; 
             color: #202124; 
-            font-family: 'Google Sans', 'Roboto', sans-serif;
         }
-        .f-header { display: flex; align-items: center; gap: 15px; border-bottom: 2px solid var(--google-blue); padding-bottom: 20px; margin-bottom: 30px; }
-        .f-header h2 { margin: 0; color: #1a73e8; font-size: 26px; font-weight: 400; }
-        .f-item { margin-bottom: 25px; }
-        .f-item b { display: block; font-size: 11px; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
-        .f-item span { font-size: 19px; color: #202124; font-weight: 400; }
-        .f-footer { margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 12px; text-align: center; }
-        .f-footer small { color: #5f6368; display: block; margin-bottom: 5px; }
-        .f-footer h3 { margin: 0; color: var(--google-blue); font-size: 22px; font-weight: 500; }
     </style>
 </head>
 <body>
 
-<div id="loading-overlay"><div class="spinner"></div><p style="font-family:'Google Sans'; margin-top:20px; color:var(--google-blue)">Procesando...</p></div>
-<div id="toast"><span id="toast-text"></span></div>
+<div id="loading-overlay"><div class="spinner"></div><p style="font-family:'Google Sans'; margin-top:20px; color:var(--google-blue)">Sincronizando...</p></div>
 
-<div id="auth-screen" style="display: flex; flex-direction: column; width: 100%; align-items: center; justify-content: center; padding: 20px;">
+<div id="auth-screen" style="display: flex; flex-direction: column; width: 100%; align-items: center; justify-content: center; padding: 20px; height: 100vh;">
     <span class="material-symbols-outlined" style="font-size: 64px; color: var(--google-blue); margin-bottom: 10px;">cloud_done</span>
     <h1 style="font-family: 'Google Sans'; font-weight: 400; margin-bottom: 30px;">Registro Ministerial</h1>
-    <div class="card" style="max-width: 400px;">
+    <div class="card" style="width: 100%; max-width: 400px;">
         <div class="input-group"><label>Correo</label><div class="field"><input type="email" id="auth-email"></div></div>
         <div class="input-group"><label>Contraseña</label><div class="field"><input type="password" id="auth-password"></div></div>
         <button class="btn-save" onclick="handleAuth('login')">Entrar</button>
@@ -114,7 +102,7 @@
                 <label>WhatsApp</label>
                 <div class="phone-grid">
                     <div class="field"><select id="prefijo"><option>0412</option><option>0424</option><option>0414</option><option>0422</option><option>0426</option><option>0416</option></select></div>
-                    <div class="field"><input type="number" id="telefono" placeholder="1234567" required></div>
+                    <div class="field"><input type="tel" id="telefono" placeholder="1234567" required></div>
                 </div>
             </div>
             <div class="input-group"><label>Tema analizado hoy</label><div class="field"><input type="text" id="tema"></div></div>
@@ -131,19 +119,6 @@
     </div>
 </div>
 
-<div id="ficha-render">
-    <div class="f-header"><span class="material-symbols-outlined" style="color:#1a73e8; font-size:40px;">description</span><h2>Ficha de Visita</h2></div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-        <div class="f-item"><b>Persona</b><span id="f-nombre"></span></div>
-        <div class="f-item"><b>Territorio</b><span id="f-territorio"></span></div>
-    </div>
-    <div class="f-item"><b>Dirección</b><span id="f-dir"></span></div>
-    <div class="f-item"><b>Tema Tratado Hoy</b><span id="f-tema"></span></div>
-    <div class="f-item"><b>Tema Pendiente</b><span id="f-pendiente"></span></div>
-    <div class="f-item"><b>Notas Adicionales</b><span id="f-notas"></span></div>
-    <div class="f-footer"><small>CITA PROGRAMADA PARA</small><h3 id="f-cita"></h3></div>
-</div>
-
 <script>
     const SUPABASE_URL = 'https://cgwyjtykhgrphdnbtcpe.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_Xyd7Os7EhFGC_go-C-jPlA_Jqoj0pfD';
@@ -151,7 +126,7 @@
     const loader = document.getElementById('loading-overlay');
 
     function getClean12h(isoStr) {
-        if(!isoStr) return { full: "", time: "", fechaLarga: "" };
+        if(!isoStr) return { full: "", time: "", dateObj: new Date() };
         const cleanStr = isoStr.replace('T', ' ').split('.')[0]; 
         const parts = cleanStr.split(' ');
         const dateParts = parts[0].split('-');
@@ -159,14 +134,30 @@
         let hh = parseInt(timeParts[0]);
         let mm = timeParts[1];
         let ampm = hh >= 12 ? 'p. m.' : 'a. m.';
-        hh = hh % 12; hh = hh ? hh : 12;
+        hh = hh % 12 || 12;
         const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-        const mesStr = meses[parseInt(dateParts[1]) - 1];
         return {
-            full: `${dateParts[2]} ${mesStr} • ${hh}:${mm} ${ampm}`,
+            full: `${dateParts[2]} ${meses[parseInt(dateParts[1]) - 1]} • ${hh}:${mm} ${ampm}`,
             time: `${hh}:${mm} ${ampm}`,
-            fechaLarga: `${dateParts[2]} de ${mesStr} a las ${hh}:${mm} ${ampm}`
+            dateObj: new Date(isoStr)
         };
+    }
+
+    function getSmartGreeting(nombre, isoStr) {
+        const info = getClean12h(isoStr);
+        const hoy = new Date();
+        const cita = info.dateObj;
+        const hoyReset = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+        const citaReset = new Date(cita.getFullYear(), cita.getMonth(), cita.getDate());
+        const diffDias = Math.round((citaReset - hoyReset) / (1000 * 60 * 60 * 24));
+        
+        let diaTexto = "hoy";
+        if (diffDias === 1) diaTexto = "mañana";
+        if (diffDias > 1) {
+            const diasSemana = ["el domingo", "el lunes", "el martes", "el miércoles", "el jueves", "el viernes", "el sábado"];
+            diaTexto = diasSemana[cita.getDay()];
+        }
+        return `Hola, ${nombre}. Te escribo para confirmarte que pasaré a visitarte ${diaTexto} a las ${info.time}. ¿Estarás disponible?`;
     }
 
     async function handleAuth(t) {
@@ -196,18 +187,17 @@
         e.preventDefault();
         loader.style.display = 'flex';
         
-        // Lógica de corrección de número telefónico (+58 + prefijo sin cero)
-        const prefijoOriginal = document.getElementById('prefijo').value;
-        const prefijoSinCero = prefijoOriginal.substring(1); // Quita el primer carácter (el 0)
-        const numeroLimpio = document.getElementById('telefono').value.trim();
-        const numeroCompleto = "58" + prefijoSinCero + numeroLimpio;
+        // --- BLOQUE DE LIMPIEZA TOTAL DEL NÚMERO ---
+        const prefijo = document.getElementById('prefijo').value.substring(1); // Quita el 0 inicial
+        let numPuro = document.getElementById('telefono').value.replace(/\D/g, ''); // Elimina todo lo que NO sea número
+        const numeroFinal = "58" + prefijo + numPuro;
 
         const { data: { user } } = await _supabase.auth.getUser();
         const { error } = await _supabase.from('Registros').insert([{
             territorio: document.getElementById('territorio').value,
             nombre: document.getElementById('nombre').value,
             direccion: document.getElementById('direccion').value,
-            telefono: numeroCompleto, 
+            telefono: numeroFinal, 
             tema_hoy: document.getElementById('tema').value,
             tema_pendiente: document.getElementById('temaPendiente').value,
             notas_y_detalles: document.getElementById('detalles').value,
@@ -225,37 +215,15 @@
         render();
     }
 
-    async function descargar(id) {
-        loader.style.display = 'flex';
-        const { data } = await _supabase.from('Registros').select('*').eq('id', id).single();
-        const infoHora = getClean12h(data.proxima_cita);
-        document.getElementById('f-nombre').innerText = data.nombre;
-        document.getElementById('f-territorio').innerText = data.territorio || 'General';
-        document.getElementById('f-dir').innerText = data.direccion;
-        document.getElementById('f-tema').innerText = data.tema_hoy || 'No registrado';
-        document.getElementById('f-pendiente').innerText = data.tema_pendiente || 'Ninguno';
-        document.getElementById('f-notas').innerText = data.notas_y_detalles || 'Sin notas';
-        document.getElementById('f-cita').innerText = infoHora.fechaLarga.toUpperCase();
-        setTimeout(async () => {
-            const canvas = await html2canvas(document.getElementById('ficha-render'), { scale: 3, backgroundColor: '#ffffff' });
-            const link = document.createElement('a');
-            link.download = `Ficha_${data.nombre}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-            loader.style.display = 'none';
-        }, 500);
-    }
-
     async function render() {
         const { data: { user } } = await _supabase.auth.getUser();
         const { data } = await _supabase.from('Registros').select('*').eq('user_id', user.id).order('proxima_cita', { ascending: true });
         const l = document.getElementById('listaAgenda');
-        l.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray;font-size:12px;margin:20px">No hay registros</p>';
+        l.innerHTML = data?.length ? '' : '<p style="text-align:center;color:gray;font-size:12px;margin:20px">No hay visitas programadas</p>';
         
         data?.forEach(i => {
             const infoHora = getClean12h(i.proxima_cita);
-            const msg = `Hola, ${i.nombre}. Te escribo para confirmarte que pasaré a visitarte hoy a las ${infoHora.time}. ¿Estarás disponible?`;
-            
+            const smartMsg = getSmartGreeting(i.nombre, i.proxima_cita);
             const div = document.createElement('div');
             div.className = 'agenda-item';
             div.innerHTML = `
@@ -265,10 +233,9 @@
                     <p><span class="material-symbols-outlined" style="font-size:16px">label</span> ${i.tema_pendiente || 'Pendiente'}</p>
                 </div>
                 <div class="actions">
-                    <button class="btn-icon wa" onclick="window.open('https://api.whatsapp.com/send?phone=${i.telefono}&text=${encodeURIComponent(msg)}')">
+                    <button class="btn-icon wa" onclick="window.open('https://api.whatsapp.com/send?phone=${i.telefono.trim()}&text=${encodeURIComponent(smartMsg)}')">
                         <span class="material-symbols-outlined">chat</span>
                     </button>
-                    <button class="btn-icon" onclick="descargar(${i.id})"><span class="material-symbols-outlined">file_download</span></button>
                     <button class="btn-icon delete" onclick="eliminar(${i.id})"><span class="material-symbols-outlined">delete</span></button>
                 </div>`;
             l.appendChild(div);
@@ -278,3 +245,4 @@
 </script>
 </body>
 </html>
+ 
