@@ -151,51 +151,22 @@
     const loader = document.getElementById('loading-overlay');
 
     function getClean12h(isoStr) {
-        if(!isoStr) return { full: "", time: "", fechaLarga: "", dateObj: new Date() };
+        if(!isoStr) return { full: "", time: "", fechaLarga: "" };
         const cleanStr = isoStr.replace('T', ' ').split('.')[0]; 
         const parts = cleanStr.split(' ');
         const dateParts = parts[0].split('-');
         const timeParts = parts[1].split(':');
-        
         let hh = parseInt(timeParts[0]);
         let mm = timeParts[1];
         let ampm = hh >= 12 ? 'p. m.' : 'a. m.';
         hh = hh % 12; hh = hh ? hh : 12;
         const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
         const mesStr = meses[parseInt(dateParts[1]) - 1];
-        
         return {
             full: `${dateParts[2]} ${mesStr} • ${hh}:${mm} ${ampm}`,
             time: `${hh}:${mm} ${ampm}`,
-            fechaLarga: `${dateParts[2]} de ${mesStr} a las ${hh}:${mm} ${ampm}`,
-            dateObj: new Date(isoStr)
+            fechaLarga: `${dateParts[2]} de ${mesStr} a las ${hh}:${mm} ${ampm}`
         };
-    }
-
-    // NUEVA FUNCIÓN: Generador de saludo inteligente
-    function getSmartGreeting(nombre, isoStr) {
-        const info = getClean12h(isoStr);
-        const hoy = new Date();
-        const cita = info.dateObj;
-        
-        // Resetear horas para comparar solo días
-        const hoyReset = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-        const citaReset = new Date(cita.getFullYear(), cita.getMonth(), cita.getDate());
-        
-        const diffTiempo = citaReset - hoyReset;
-        const diffDias = Math.ceil(diffTiempo / (1000 * 60 * 60 * 24));
-        
-        let diaTexto = "";
-        if (diffDias === 0) {
-            diaTexto = "hoy";
-        } else if (diffDias === 1) {
-            diaTexto = "mañana";
-        } else {
-            const diasSemana = ["el domingo", "el lunes", "el martes", "el miércoles", "el jueves", "el viernes", "el sábado"];
-            diaTexto = diasSemana[cita.getDay()];
-        }
-        
-        return `Hola, ${nombre}. Te escribo para confirmarte que pasaré a visitarte ${diaTexto} a las ${info.time}. ¿Estarás disponible?`;
     }
 
     async function handleAuth(t) {
@@ -225,8 +196,9 @@
         e.preventDefault();
         loader.style.display = 'flex';
         
+        // Lógica de corrección de número telefónico (+58 + prefijo sin cero)
         const prefijoOriginal = document.getElementById('prefijo').value;
-        const prefijoSinCero = prefijoOriginal.substring(1);
+        const prefijoSinCero = prefijoOriginal.substring(1); // Quita el primer carácter (el 0)
         const numeroLimpio = document.getElementById('telefono').value.trim();
         const numeroCompleto = "58" + prefijoSinCero + numeroLimpio;
 
@@ -282,8 +254,7 @@
         
         data?.forEach(i => {
             const infoHora = getClean12h(i.proxima_cita);
-            // Generar el mensaje inteligente dinámicamente
-            const smartMsg = getSmartGreeting(i.nombre, i.proxima_cita);
+            const msg = `Hola, ${i.nombre}. Te escribo para confirmarte que pasaré a visitarte hoy a las ${infoHora.time}. ¿Estarás disponible?`;
             
             const div = document.createElement('div');
             div.className = 'agenda-item';
@@ -294,7 +265,7 @@
                     <p><span class="material-symbols-outlined" style="font-size:16px">label</span> ${i.tema_pendiente || 'Pendiente'}</p>
                 </div>
                 <div class="actions">
-                    <button class="btn-icon wa" onclick="window.open('https://api.whatsapp.com/send?phone=${i.telefono}&text=${encodeURIComponent(smartMsg)}')">
+                    <button class="btn-icon wa" onclick="window.open('https://api.whatsapp.com/send?phone=${i.telefono}&text=${encodeURIComponent(msg)}')">
                         <span class="material-symbols-outlined">chat</span>
                     </button>
                     <button class="btn-icon" onclick="descargar(${i.id})"><span class="material-symbols-outlined">file_download</span></button>
@@ -307,4 +278,3 @@
 </script>
 </body>
 </html>
- 
