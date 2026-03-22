@@ -175,28 +175,21 @@
             telefono: document.getElementById('prefijo').value + document.getElementById('telefono').value,
             tema_hoy: document.getElementById('tema').value,
             tema_pendiente: document.getElementById('temaPendiente').value,
-            detalles: document.getElementById('detalles').value,
+            notas_y_detalles: document.getElementById('detalles').value,
             proxima_cita: document.getElementById('proxima').value,
             user_id: user.id
         }]);
 
         loader.style.display = 'none';
-        if(error) alert(error.message); else { e.target.reset(); render(); showToast("Guardado en la nube"); }
+        if(error) alert("Fallo al guardar: " + error.message); else { e.target.reset(); render(); showToast("¡Sincronizado con éxito!"); }
     });
 
-    // FUNCIÓN ELIMINAR CORREGIDA
     async function eliminar(id) {
-        if(!confirm("¿Estás seguro de que quieres eliminar este registro de la nube?")) return;
+        if(!confirm("¿Deseas eliminar este registro de la nube?")) return;
         loader.style.display = 'flex';
         const { error } = await _supabase.from('Registros').delete().eq('id', id);
         loader.style.display = 'none';
-        
-        if(error) {
-            alert("Error al eliminar: " + error.message);
-        } else {
-            showToast("Registro eliminado correctamente");
-            render(); // Esto vuelve a cargar la lista para que el borrado se vea al instante
-        }
+        if(error) alert("Error: " + error.message); else { showToast("Eliminado correctamente"); render(); }
     }
 
     async function descargar(id) {
@@ -206,7 +199,7 @@
         document.getElementById('f-dir').innerText = data.direccion;
         document.getElementById('f-tema').innerText = data.tema_hoy || 'Sin tema';
         document.getElementById('f-cita').innerText = new Date(data.proxima_cita).toLocaleString();
-        document.getElementById('f-notas').innerText = data.detalles || 'Sin notas';
+        document.getElementById('f-notas').innerText = data.notas_y_detalles || 'Sin notas';
         
         setTimeout(async () => {
             const canvas = await html2canvas(document.getElementById('ficha-render'), { scale: 2 });
