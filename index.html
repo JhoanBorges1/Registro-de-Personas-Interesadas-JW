@@ -168,6 +168,7 @@
         loader.style.display = 'flex';
         const { data: { user } } = await _supabase.auth.getUser();
         
+        // AQUÍ ESTÁ EL CAMBIO MAESTRO: 'notas_y_detalles'
         const { error } = await _supabase.from('Registros').insert([{
             territorio: document.getElementById('territorio').value,
             nombre: document.getElementById('nombre').value,
